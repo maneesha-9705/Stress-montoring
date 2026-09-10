@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer,
 } from 'recharts';
@@ -28,23 +28,24 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (!d) return null;
   return (
     <div style={{
-      background: '#1e293b', border: '1px solid #334155', borderRadius: 8,
-      padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#f1f5f9', minWidth: 170,
+      background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8,
+      padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#1a1a2e', minWidth: 170,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
     }}>
-      <div style={{ fontWeight: 700, marginBottom: 4, color: '#38bdf8' }}>{label}</div>
+      <div style={{ fontWeight: 700, marginBottom: 4, color: '#2563eb' }}>{label}</div>
       {d.avgDistressScore != null ? (
-        <div style={{ color: getDistressColor(d.avgDistressScore) }}>
+        <div style={{ color: getDistressColor(d.avgDistressScore), fontWeight: 600 }}>
           Distress Score: <strong>{d.avgDistressScore}/100</strong>
         </div>
       ) : (
         <div style={{ color: '#64748b', fontStyle: 'italic' }}>No analysis data</div>
       )}
-      <div>Messages: <strong>{d.messageCount ?? 0}</strong></div>
+      <div style={{ color: '#475569', marginTop: 2 }}>Messages: <strong>{d.messageCount ?? 0}</strong></div>
       {d.dominantEmotion && (
-        <div>Emotion: <strong>{EMOTION_ICONS[d.dominantEmotion] || ''} {d.dominantEmotion}</strong></div>
+        <div style={{ color: '#475569', marginTop: 2 }}>Emotion: <strong>{EMOTION_ICONS[d.dominantEmotion] || ''} {d.dominantEmotion}</strong></div>
       )}
       {d.crisisCount > 0 && (
-        <div style={{ color: '#f87171', marginTop: 4 }}>⚠ Crisis signals: <strong>{d.crisisCount}</strong></div>
+        <div style={{ color: '#b91c1c', marginTop: 4, fontWeight: 700 }}>⚠ Crisis signals: <strong>{d.crisisCount}</strong></div>
       )}
     </div>
   );
@@ -56,7 +57,7 @@ const CustomDot = ({ cx, cy, payload }) => {
   const hasCrisis = payload.crisisCount > 0;
   return (
     <g>
-      <circle cx={cx} cy={cy} r={hasCrisis ? 7 : 4} fill={color} stroke="#1e293b" strokeWidth={2} />
+      <circle cx={cx} cy={cy} r={hasCrisis ? 7 : 4} fill={color} stroke="#ffffff" strokeWidth={2} />
       {hasCrisis && <circle cx={cx} cy={cy} r={11} fill="none" stroke="#ef4444" strokeWidth={1.5} strokeDasharray="3 2" />}
     </g>
   );

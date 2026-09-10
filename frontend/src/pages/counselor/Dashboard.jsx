@@ -116,7 +116,7 @@ export default function Dashboard() {
                           <button
                             type="button"
                             onClick={() => navigate(`/counselor/victims/${caseItem.victimId?._id || caseItem.victimId}`)}
-                            style={{ backgroundColor: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.65rem 0.9rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
+                            style={{ backgroundColor: '#ffffff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '0.65rem 0.9rem', fontWeight: '700', cursor: 'pointer', fontSize: '0.85rem' }}
                           >
                             VICTIM PROFILE
                           </button>

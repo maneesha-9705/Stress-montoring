@@ -1,4 +1,4 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
 const asyncHandler = require('express-async-handler');
@@ -12,6 +12,7 @@ const ChatSession = require('../models/ChatSession');
 const ChatMessage = require('../models/ChatMessage');
 const DailyUpdate = require('../models/DailyUpdate');
 const Alert = require('../models/Alert');
+const Appointment = require('../models/Appointment');
 
 // ─── helpers ────────────────────────────────────────────────────
 const isMongoObjectIdString = (value) => /^[a-fA-F0-9]{24}$/.test(String(value || ''));
@@ -170,6 +171,7 @@ const getMyVictims = asyncHandler(async (req, res) => {
       category: matchedCase.category || 'Support Request',
       caseStatus: matchedCase.status || 'Assigned',
       assignedAt: matchedCase.assignedAt || matchedCase.createdAt || new Date(),
+      lastInteractionAt: analysis?.updatedAt || matchedCase.assignedAt || matchedCase.createdAt || new Date(),
       distressAnalysis: analysis,
     };
   });
@@ -535,6 +537,183 @@ const streamAssignedCaseDocument = asyncHandler(async (req, res) => {
   res.sendFile(filePath);
 });
 
+// ─── APPOINTMENTS ─────────────────────────────────────────────────────────────
+
+// @desc    Get today's + upcoming appointments for the authenticated counselor
+// @route   GET /api/v1/counselor/appointments
+// @access  Private/Counselor
+const getMyAppointments = asyncHandler(async (req, res) => {
+  const authenticatedUserId = req.user?.userId || req.user?.id || req.user?._id;
+  const { range = 'today' } = req.query; // 'today' | 'week' | 'all'
+
+  const now = new Date();
+  const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+  const nowISTMs = now.getTime() + IST_OFFSET_MS;
+  const nowIST = new Date(nowISTMs);
+
+  const startOfDayIST = new Date(nowIST);
+  startOfDayIST.setUTCHours(0, 0, 0, 0);
+  const todayStartUTC = new Date(startOfDayIST.getTime() - IST_OFFSET_MS);
+
+  let endUTC;
+  if (range === 'week') {
+    endUTC = new Date(todayStartUTC.getTime() + 7 * 24 * 60 * 60 * 1000);
+  } else if (range === 'all') {
+    endUTC = new Date('2099-12-31');
+  } else {
+    const endOfDayIST = new Date(nowIST);
+    endOfDayIST.setUTCHours(23, 59, 59, 999);
+    endUTC = new Date(endOfDayIST.getTime() - IST_OFFSET_MS);
+  }
+
+  const appointments = await Appointment.find({
+    counselorId: authenticatedUserId,
+    scheduledAt: { $gte: todayStartUTC, $lte: endUTC },
+  }).sort({ scheduledAt: 1 }).lean();
+
+  res.json({ success: true, count: appointments.length, data: appointments });
+});
+
+// @desc    Book a new appointment
+// @route   POST /api/v1/counselor/appointments
+// @access  Private/Counselor
+const createAppointment = asyncHandler(async (req, res) => {
+  const authenticatedUserId = req.user?.userId || req.user?.id || req.user?._id;
+  const { victimId, victimName, title, notes, scheduledAt, durationMin, mode } = req.body;
+
+  if (!title || !scheduledAt) {
+    res.status(400);
+    throw new Error('Title and scheduledAt are required.');
+  }
+
+  const appt = await Appointment.create({
+    counselorId: authenticatedUserId,
+    victimId: victimId || null,
+    victimName: victimName || 'Walk-in / General',
+    title,
+    notes: notes || '',
+    scheduledAt: new Date(scheduledAt),
+    durationMin: durationMin || 30,
+    mode: mode || 'in-person',
+    status: 'scheduled',
+  });
+
+  res.status(201).json({ success: true, data: appt });
+});
+
+// @desc    Update appointment status (complete / cancel / no-show)
+// @route   PATCH /api/v1/counselor/appointments/:id
+// @access  Private/Counselor
+const updateAppointmentStatus = asyncHandler(async (req, res) => {
+  const authenticatedUserId = req.user?.userId || req.user?.id || req.user?._id;
+  const { status } = req.body;
+
+  const appt = await Appointment.findOne({ _id: req.params.id, counselorId: authenticatedUserId });
+  if (!appt) {
+    res.status(404);
+    throw new Error('Appointment not found or not owned by you.');
+  }
+
+  if (status) appt.status = status;
+  await appt.save();
+
+  res.json({ success: true, data: appt });
+});
+
+// @desc    Get follow-ups tracking list and selected victim follow-up metrics
+// @route   GET /api/v1/counselor/follow-ups
+// @access  Private/Counselor
+const getFollowUps = asyncHandler(async (req, res) => {
+  const authenticatedUserId = req.user?.userId || req.user?.id || req.user?._id;
+  const counselor = await Counselor.findOne({ userId: authenticatedUserId });
+
+  const caseRecords = counselor
+    ? await Case.find({ assignedCounselorId: counselor._id }).populate('victimId', 'name email phone state district registrationId')
+    : [];
+  const assignments = await Assignment.find({ counselorId: authenticatedUserId, status: 'active' });
+
+  const victimUserIdSet = new Set();
+  caseRecords.forEach((c) => {
+    if (c.victimId?._id) victimUserIdSet.add(c.victimId._id.toString());
+    else if (c.victimId) victimUserIdSet.add(c.victimId.toString());
+  });
+  assignments.forEach((a) => {
+    if (a.victimId) victimUserIdSet.add(a.victimId.toString());
+  });
+
+  const victimUserIds = Array.from(victimUserIdSet);
+  const victimProfiles = await Victim.find({ userId: { $in: victimUserIds } }).select('-aadhaarNumber -panNumber');
+  const emotionAnalyses = await EmotionAnalysis.find({ victimId: { $in: victimUserIds } }).lean();
+  const appointments = await Appointment.find({ counselorId: authenticatedUserId }).sort({ scheduledAt: -1 }).lean();
+
+  const now = new Date();
+
+  const followUpList = victimUserIds.map((vUserId) => {
+    const vProfile = victimProfiles.find((p) => p.userId?.toString() === vUserId) || {};
+    const matchedCase = caseRecords.find((c) => (c.victimId?._id || c.victimId)?.toString() === vUserId) || {};
+    const analysis = emotionAnalyses.find((a) => a.victimId?.toString() === vUserId) || {
+      distressScore: 25, distressBand: 'Low', primaryEmotion: 'Calm',
+    };
+    
+    // Find victim appointments
+    const victimAppts = appointments.filter((a) => a.victimId?.toString() === vUserId);
+    const nextAppt = victimAppts.find((a) => new Date(a.scheduledAt) >= now && a.status === 'scheduled');
+    const lastAppt = victimAppts.find((a) => new Date(a.scheduledAt) < now || a.status === 'completed');
+
+    const score = analysis.distressScore || 20;
+    const band = analysis.distressBand || (score >= 75 ? 'Severe' : score >= 50 ? 'High' : score >= 25 ? 'Moderate' : 'Low');
+
+    // Determine due date interval based on risk severity
+    const intervalDays = band === 'Severe' ? 2 : band === 'High' ? 3 : band === 'Moderate' ? 7 : 14;
+    const lastContact = lastAppt?.scheduledAt || analysis.updatedAt || matchedCase.assignedAt || matchedCase.createdAt || now;
+    
+    let nextDue = nextAppt?.scheduledAt;
+    if (!nextDue) {
+      const calculatedDue = new Date(new Date(lastContact).getTime() + intervalDays * 24 * 60 * 60 * 1000);
+      nextDue = calculatedDue;
+    }
+
+    const isOverdue = new Date(nextDue) < now && (!nextAppt || nextAppt.status !== 'completed');
+    const method = nextAppt?.mode === 'tele' ? 'Tele-consult' : nextAppt?.mode === 'voice' ? 'Phone Call' : 'In-Person';
+    const status = isOverdue ? 'Overdue' : nextAppt?.status === 'completed' ? 'Completed' : 'Scheduled';
+
+    return {
+      _id: vUserId,
+      victimId: vUserId,
+      name: vProfile.name || matchedCase.victimId?.name || 'Assigned Victim',
+      caseId: matchedCase.caseId || (matchedCase._id ? `ARH-${matchedCase._id.toString().slice(-4).toUpperCase()}` : 'N/A'),
+      category: matchedCase.category || 'General Counseling',
+      district: vProfile.district || matchedCase.victimId?.district || 'N/A',
+      state: vProfile.state || matchedCase.victimId?.state || 'N/A',
+      phone: vProfile.phone || matchedCase.victimId?.phone || 'N/A',
+      distressScore: score,
+      distressBand: band,
+      primaryEmotion: analysis.primaryEmotion || 'Calm',
+      lastContactedAt: lastContact,
+      nextFollowUpDue: nextDue,
+      method,
+      status,
+      isOverdue,
+      notes: nextAppt?.notes || `Routine ${band.toLowerCase()} risk follow-up check-in.`,
+      lastInteractionAt: analysis.updatedAt || lastContact,
+      appointmentId: nextAppt?._id || null,
+    };
+  });
+
+  // Sort follow-ups so Overdue and High/Severe risk appear first
+  followUpList.sort((a, b) => {
+    if (a.isOverdue && !b.isOverdue) return -1;
+    if (!a.isOverdue && b.isOverdue) return 1;
+    return (b.distressScore || 0) - (a.distressScore || 0);
+  });
+
+  res.json({
+    success: true,
+    count: followUpList.length,
+    data: followUpList,
+  });
+});
+
 module.exports = {
   normalizeObjectId,
   getMyProfile,
@@ -544,4 +723,8 @@ module.exports = {
   getAssignedCases,
   getAssignedCaseById,
   streamAssignedCaseDocument,
+  getMyAppointments,
+  createAppointment,
+  updateAppointmentStatus,
+  getFollowUps,
 };

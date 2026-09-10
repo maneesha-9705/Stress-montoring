@@ -97,18 +97,18 @@ export default function Appointments() {
 
   /* ─── styles ─────────────────────────────────────────────────── */
   const s = {
-    page:    { padding: '1.5rem', fontFamily: 'system-ui, sans-serif' },
+    page:    { padding: '1.5rem', fontFamily: 'system-ui, sans-serif', backgroundColor: '#f5f6fa', minHeight: '100%' },
     header:  { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' },
-    h1:      { fontSize: '1.6rem', fontWeight: '700', color: '#0f172a', margin: 0 },
+    h1:      { fontSize: '1.6rem', fontWeight: '800', color: '#1a1a2e', margin: 0 },
     sub:     { color: '#64748b', fontSize: '0.85rem', marginTop: '0.25rem' },
-    btn:     { backgroundColor: '#0f172a', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.6rem 1.2rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' },
+    btn:     { backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.6rem 1.2rem', fontWeight: '700', cursor: 'pointer', fontSize: '0.875rem' },
     tab:     (active) => ({
-      padding: '0.45rem 1rem', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600',
-      backgroundColor: active ? '#0f172a' : '#f1f5f9', color: active ? '#fff' : '#475569',
+      padding: '0.45rem 1rem', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700',
+      backgroundColor: active ? '#2563eb' : '#f1f5f9', color: active ? '#fff' : '#475569',
     }),
-    card:    { backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '1.25rem', marginBottom: '0.75rem' },
+    card:    { backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '1.25rem', marginBottom: '0.75rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
     section: { marginBottom: '2rem' },
-    sTitle:  { fontSize: '1.1rem', fontWeight: '700', color: '#0f172a', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' },
+    sTitle:  { fontSize: '1.1rem', fontWeight: '800', color: '#1a1a2e', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' },
     pill:    (s) => ({
       display: 'inline-block', padding: '0.2rem 0.65rem', borderRadius: '12px',
       fontSize: '0.7rem', fontWeight: '700', color: statusColor[s] || '#374151', backgroundColor: statusBg[s] || '#f9fafb', textTransform: 'uppercase',

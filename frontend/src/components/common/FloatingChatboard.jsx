@@ -1,14 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 
 const LANGUAGES = [
   { code: 'en-US', langKey: 'en', label: 'English' },
-  { code: 'te-IN', langKey: 'te', label: 'Telugu (తెలుగు)' },
   { code: 'hi-IN', langKey: 'hi', label: 'Hindi (हिंदी)' },
+  { code: 'te-IN', langKey: 'te', label: 'Telugu (తెలుగు)' },
   { code: 'ta-IN', langKey: 'ta', label: 'Tamil (தமிழ்)' },
-  { code: 'kn-IN', langKey: 'kn', label: 'Kannada (కన్నడ)' },
+  { code: 'kn-IN', langKey: 'kn', label: 'Kannada (ಕನ್ನಡ)' },
   { code: 'ml-IN', langKey: 'ml', label: 'Malayalam (മലയാളം)' },
-  { code: 'es-ES', langKey: 'es', label: 'Spanish (Español)' },
-  { code: 'fr-FR', langKey: 'fr', label: 'French (Français)' },
   { code: 'mr-IN', langKey: 'mr', label: 'Marathi (मराठी)' },
   { code: 'bn-IN', langKey: 'bn', label: 'Bengali (বাংলা)' },
   { code: 'gu-IN', langKey: 'gu', label: 'Gujarati (ગુજરાતી)' },
@@ -132,6 +131,7 @@ function DistressDashboard({ analysis }) {
 
 // ─── Main Component ─────────────────────────────────────
 export default function FloatingChatboard() {
+  const { language, setLanguage, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
@@ -146,7 +146,7 @@ export default function FloatingChatboard() {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedLang, setSelectedLang] = useState('en-US');
+  const [selectedLang, setSelectedLang] = useState(() => (language === 'hi' ? 'hi-IN' : 'en-US'));
   const [isListening, setIsListening] = useState(false);
   const [autoTts, setAutoTts] = useState(true);
   const [speakingMsgId, setSpeakingMsgId] = useState(null);
@@ -155,6 +155,14 @@ export default function FloatingChatboard() {
 
   const chatBottomRef = useRef(null);
   const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    if (language === 'hi' && selectedLang !== 'hi-IN') {
+      setSelectedLang('hi-IN');
+    } else if (language === 'en' && selectedLang !== 'en-US') {
+      setSelectedLang('en-US');
+    }
+  }, [language]);
 
   // Helper for authenticated API calls
   const apiFetch = async (endpoint, options = {}) => {
@@ -223,23 +231,25 @@ export default function FloatingChatboard() {
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = selectedLang;
+      try {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = selectedLang;
 
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        if (transcript) {
-          setInput((prev) => (prev ? prev + ' ' + transcript : transcript));
-        }
-        setIsListening(false);
-      };
+        recognition.onresult = (event) => {
+          const transcript = event.results?.[0]?.[0]?.transcript;
+          if (transcript) {
+            setInput((prev) => (prev ? prev + ' ' + transcript : transcript));
+          }
+          setIsListening(false);
+        };
 
-      recognition.onerror = () => setIsListening(false);
-      recognition.onend = () => setIsListening(false);
+        recognition.onerror = () => setIsListening(false);
+        recognition.onend = () => setIsListening(false);
 
-      recognitionRef.current = recognition;
+        recognitionRef.current = recognition;
+      } catch (_) {}
     }
   }, [selectedLang]);
 
