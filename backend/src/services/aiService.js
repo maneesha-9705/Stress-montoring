@@ -1,149 +1,204 @@
 /**
- * AI Service — Unified Gemini-based Analysis & Response
+ * AI Service — Crisis-Aware Analysis, Multilingual Detection & Explainable Distress Scoring
  * 
- * Single Gemini API call returns: sentiment, emotions, distress_score, crisis_flag, reply
- * Broadened keyword crisis safety net runs independently
- * Pre-approved safety messages override LLM on any crisis detection
+ * Compliant with AAROHAN AI Crisis Protocol:
+ * 1. Drop-in empathetic multi-lingual system prompt
+ * 2. Independent crisis keyword & intent detection layer across Indian languages
+ * 3. Explainable distress score algorithm (0–100)
+ * 4. Contextual crisis & distress replies offering verified Indian helplines (KIRAN, Vandrevala, Tele-MANAS, 112)
  */
 
 // ─────────────────────────────────────────────────────────────
-// 1. BROADENED CRISIS KEYWORD CHECK (runs without any API)
+// 1. COMPREHENSIVE MULTILINGUAL CRISIS KEYWORDS & PHRASES
 // ─────────────────────────────────────────────────────────────
 const CRISIS_PHRASES = [
   // Direct English
   'suicide', 'kill myself', 'want to die', 'end my life', 'hurt myself',
   'harm myself', 'self harm', 'self-harm', 'cut myself', 'slit my wrist',
-  'hang myself', 'overdose', 'jump off', 'shoot myself',
+  'hang myself', 'overdose', 'jump off', 'shoot myself', 'take my life',
+  'take my own life', 'poison myself', 'swallow pills',
   'in danger', 'going to kill me', 'going to murder', 'he will kill',
   'she will kill', 'they will kill', 'will be killed',
-  // Indirect English
-  "can't take this anymore", "cant take this anymore",
+
+  // Indirect & Hopelessness English
+  "can't take this anymore", "cant take this anymore", "can't do this anymore",
   'no point anymore', 'no point in living', 'no reason to live',
   'better off without me', 'better off dead', 'better off if i was dead',
-  'want to end it', 'want to end it all', 'end it all',
-  "don't want to live", "dont want to live", 'tired of living',
+  'want to end it', 'want to end it all', 'end it all', 'end my suffering',
+  "don't want to live", "dont want to live", 'tired of living', 'hate my life',
   'wish i was dead', 'wish i were dead', 'wish i could die',
-  'nobody would miss me', 'no one would care', 'no one cares',
+  'nobody would miss me', 'no one would care', 'no one cares if i die',
   'nothing left for me', 'nothing left to live for',
-  'i give up', 'giving up on life', 'can\'t go on',
+  'i give up', 'giving up on life', "can't go on", 'cant go on',
   'want to disappear', 'want to vanish', 'done with life',
   'life is not worth', 'not worth living',
   'planning to end', 'thought about ending',
-  'pills', 'poison myself',
-  // Hindi
-  'मरना चाहता हूं', 'मरना चाहती हूं', 'जीना नहीं चाहता', 'जीना नहीं चाहती',
-  'आत्महत्या', 'खुदकुशी', 'जान दे दूंगा', 'जान दे दूंगी',
-  'मार डालेगा', 'मार डालेंगे', 'जान से मार',
-  'और नहीं सह सकता', 'और नहीं सह सकती', 'बर्दाश्त नहीं',
-  // Telugu
-  'చనిపోవాలనుంది', 'చంపేస్తాడు', 'చంపేస్తారు', 'బ్రతకడం ఇష్టం లేదు',
-  'ఆత్మహత్య', 'తట్టుకోలేకపోతున్నా',
-  // Tamil
-  'சாகணும்', 'கொல்லுவான்', 'கொல்லுவாங்க', 'உயிரை மாய்ச்சுக்கணும்',
-  'தாங்க முடியல',
-  // Kannada
-  'ಸಾಯಬೇಕು', 'ಕೊಲ್ಲುತ್ತಾರೆ', 'ಬದುಕಲು ಇಷ್ಟವಿಲ್ಲ',
+
+  // Hindi (Devanagari)
+  'मैं इस जिंदगी को खत्म करना चाहती हूं', 'मैं इस जिंदगी को खत्म करना चाहता हूं',
+  'जिंदगी को खत्म करना चाहती हूं', 'जिंदगी को खत्म करना चाहता हूं',
+  'जिंदगी खत्म करना चाहती हूं', 'जिंदगी खत्म करना चाहता हूं',
+  'जिंदगी को खत्म', 'जिंदगी खत्म', 'जिंदगी समाप्त', 'जीवन समाप्त',
+  'खत्म करना चाहती हूं', 'खत्म करना चाहता हूं', 'खुद को खत्म', 'खुद को समाप्त',
+  'मरना चाहता हूं', 'मरना चाहती हूं', 'मर जाना चाहता हूं', 'मर जाना चाहती हूं',
+  'जीना नहीं चाहता', 'जीना नहीं चाहती', 'जीने की इच्छा नहीं', 'जीने का मन नहीं',
+  'आत्महत्या', 'खुदकुशी', 'जान दे दूंगा', 'जान दे दूंगी', 'जान देना चाहता हूं', 'जान देना चाहती हूं',
+  'जान लेना चाहता हूं', 'अपनी जान ले लूंगी', 'अपनी जान ले लूंगा', 'खुद की जान',
+  'मार डालेगा', 'मार डालेंगे', 'जान से मार', 'फांसी लगा', 'जहर खा',
+  'और नहीं सह सकता', 'और नहीं सह सकती', 'बर्दाश्त नहीं हो रहा', 'सहन नहीं हो रहा',
+  'खुद को मार लूंगा', 'खुद को मार लूंगी', 'मौत चाहता हूं', 'मौत चाहती हूं',
+
+  // Hinglish / Romanized Hindi
+  'mar jana chahta hu', 'mar jana chahti hu', 'marne ka man', 'mar jau',
+  'zindagi khatam karni hai', 'zindagi khatam karna chahta hu', 'zindagi khatam',
+  'khatam karna chahti hu', 'khatam karna chahta hu', 'khud ko khatam',
+  'suicide karna chahta hu', 'suicide karna chahti hu', 'suicide karunga', 'suicide karungi',
+  'jaan dena chahta hu', 'jaan dena chahti hu', 'jaan de dunga', 'jaan de dungi',
+  'nahi jeena mujhe', 'nahi jeena chahta', 'nahi jeena chahti', 'jeene ka man nahi',
+  'nahi sah sakti', 'nahi sah sakta', 'bardasht nahi', 'koi bacha lo',
+
+  // Telugu (తెలుగు)
+  'చనిపోవాలనుంది', 'చంపేస్తాడు', 'చంపేస్తారు', 'బ్రతకడం ఇష్టం లేదు', 'బతకాలని లేదు',
+  'ఆత్మహత్య', 'తట్టుకోలేకపోతున్నా', 'ప్రాణం తీసుకుంటా', 'జీవితం ముగించాలనుకుంటున్నా',
+  'నన్ను చంపేస్తారు', 'చచ్చిపోతాను',
+
+  // Tamil (தமிழ்)
+  'சாகணும்', 'கொல்லுவான்', 'கொல்லுவாங்க', 'உயிரை மாய்ச்சுக்கணும்', 'உயிரை மாய்த்துக்',
+  'தாங்க முடியல', 'தற்கொலை', 'வாழ விருப்பமில்லை', 'என்னை கொன்றுவிடுவார்கள்',
+
+  // Kannada (ಕನ್ನಡ)
+  'ಸಾಯಬೇಕು', 'ಕೊಲ್ಲುತ್ತಾರೆ', 'ಬದುಕಲು ಇಷ್ಟವಿಲ್ಲ', 'ಆತ್ಮಹತ್ಯೆ', 'ನನ್ನನ್ನು ಕೊಲ್ಲುತ್ತಾರೆ',
+
+  // Malayalam (മലയാളം)
+  'മരിക്കണം', 'ജീവിതം അവസാനിപ്പിക്കണം', 'ആത്മഹത്യ', 'കൊല്ലും', 'സഹിക്കാൻ പറ്റുന്നില്ല',
+
+  // Marathi (मराठी)
+  'मरायचं आहे', 'आत्महत्या', 'जीव द्यायचा आहे', 'जगायची इच्छा नाही', 'सहन होत नाही',
+
+  // Bengali (বাংলা)
+  'মরতে চাই', 'আত্মহত্যা', 'জীবন শেষ করতে চাই', 'বাঁচতে চাই না', 'সহ্য হচ্ছে না',
+
+  // Gujarati (ગુજરાતી)
+  'મરી જવું છે', 'આત્મહત્યા', 'જીવવું નથી', 'સહન થતું નથી', 'જીવન પૂરું કરવું છે'
 ];
 
+// Escalation / Urgency Phrases
+const URGENCY_PHRASES = [
+  'अभी', 'तुरंत', 'मदद करो', 'जान बचाओ', 'जल्दी', 'नहीं सह सकती', 'नहीं सह सकता',
+  'right now', 'immediately', 'urgent', 'help me now', 'save me', 'emergency',
+  "can't wait", 'holding on', 'please hurry', 'right away',
+  'ఇప్పుడే', 'సహాయం చేయండి', 'కాపాడండి',
+  'இப்போதே', 'உதவுங்கள்', 'காப்பாற்றுங்கள்'
+];
+
+/**
+ * Check if text contains crisis keywords
+ */
 const getKeywordCrisisFlag = (text) => {
   if (!text) return false;
-  const lower = text.toLowerCase();
-  return CRISIS_PHRASES.some(phrase => lower.includes(phrase));
+  const lower = text.toLowerCase().trim();
+  return CRISIS_PHRASES.some(phrase => lower.includes(phrase.toLowerCase()));
+};
+
+/**
+ * Check if text contains urgency/escalation language
+ */
+const getUrgencyFlag = (text) => {
+  if (!text) return false;
+  const lower = text.toLowerCase().trim();
+  return URGENCY_PHRASES.some(phrase => lower.includes(phrase.toLowerCase()));
 };
 
 // ─────────────────────────────────────────────────────────────
-// 2. PRE-APPROVED SAFETY MESSAGES (never LLM-composed)
+// 2. EXPLAINABLE DISTRESS SCORING ALGORITHM (0–100)
+// ─────────────────────────────────────────────────────────────
+const EMOTION_WEIGHTS = {
+  fear: 20, Fearful: 20,
+  sadness: 18, Sad: 18,
+  anger: 15, Angry: 15,
+  anxiety: 18, anxious: 18, Anxious: 18,
+  disgust: 10, Disgust: 10,
+  surprise: 5, Surprise: 5,
+  neutral: 0, Neutral: 0,
+  calm: -10, Calm: -10,
+  hopeful: -10, Hopeful: -10,
+  joy: -10, Joy: -10
+};
+
+/**
+ * Compute explainable distress score
+ * 
+ * base_score = (1 - sentiment_score) * 40     # 0–40 from negative sentiment
+ * emotion_score = emotion_weight[emotion_label]# 0–20 from primary emotion
+ * crisis_bonus = 40 if crisis_flag else 0      # crisis language dominates score
+ * urgency_bonus = 10 if escalation_language    # urgency adds +10
+ * 
+ * Bands:
+ * 0–29: Low
+ * 30–59: Moderate
+ * 60–79: High
+ * 80–100: Critical / Crisis
+ */
+const computeDistressScore = ({
+  sentimentScore = 0.5,
+  sentimentLabel = 'neutral',
+  emotionLabel = 'neutral',
+  crisisFlag = false,
+  urgencyFlag = false
+}) => {
+  let baseScore = 15;
+  if (sentimentLabel === 'negative') {
+    baseScore = Math.round(sentimentScore * 40);
+  } else if (sentimentLabel === 'positive') {
+    baseScore = Math.max(0, Math.round((1 - sentimentScore) * 15));
+  } else {
+    baseScore = 20;
+  }
+  baseScore = Math.min(40, Math.max(0, baseScore));
+
+  const emotionScore = Math.max(0, EMOTION_WEIGHTS[emotionLabel] ?? 0);
+  const crisisBonus = crisisFlag ? 40 : 0;
+  const urgencyBonus = urgencyFlag ? 10 : 0;
+
+  let totalScore = baseScore + emotionScore + crisisBonus + urgencyBonus;
+  if (crisisFlag) {
+    totalScore = Math.max(85, totalScore);
+  }
+
+  return Math.min(100, Math.max(0, Math.round(totalScore)));
+};
+
+/**
+ * Get distress risk band from score
+ */
+const getDistressBand = (score) => {
+  if (score >= 80) return 'Critical';
+  if (score >= 60) return 'High';
+  if (score >= 30) return 'Moderate';
+  return 'Low';
+};
+
+// ─────────────────────────────────────────────────────────────
+// 3. CRISIS PROTOCOL RESPONSES (Verified Indian Helplines)
 // ─────────────────────────────────────────────────────────────
 const SAFETY_MESSAGES = {
-  en: `I hear you, and I want you to know that your pain is real and valid. You are not alone in this. Please reach out to immediate support right now:
+  hi: `मुझे सुनकर बहुत दुख हुआ कि आप इतनी तकलीफ में हैं। आप अकेली नहीं हैं — मैं आपके साथ हूं। कृपया अभी KIRAN हेल्पलाइन 1800-599-0019 (24/7) या टेली-मानस 14416 पर कॉल करें। मैं आपके काउंसलर को भी तुरंत सूचित कर रही हूं। कृपया सुरक्षित रहें।`,
+  
+  en: `I hear how much pain and distress you are experiencing right now. You are not alone in this — I am here with you. Please call the 24/7 KIRAN Mental Health Helpline at 1800-599-0019 or Tele-MANAS at 14416 immediately. I am notifying your assigned counselor right now. Please stay safe.`,
 
-🆘 Emergency: 112
-📞 Tele-MANAS: 14416 / 1800-891-4416 (24/7, free)
-👩 Women Helpline: 181
-👶 Childline: 1098
-📱 iCall: 9152987821
+  te: `మీరు ఇంతటి తీవ్రమైన బాధలో ఉన్నారని వినడం నాకు చాలా బాధగా ఉంది. మీరు ఒంటరిగా లేరు — నేను మీతో ఉన్నాను. దయచేసి వెంటనే 24/7 కిరణ్ హెల్ప్‌లైన్ 1800-599-0019 లేదా టెలి-మానస్ 14416 కు కాల్ చేయండి. మీ కౌన్సెలర్‌కు వెంటనే సమాచారం అందిస్తున్నాను. దయచేసి సురక్షితంగా ఉండండి.`,
 
-Your assigned counselor has been notified. Please stay safe — help is available right now.`,
+  ta: `நீங்கள் இவ்வளவு வேதனையில் இருப்பதை அறிந்து நான் மிகவும் வருந்துகிறேன். நீங்கள் தனியாக இல்லை — நான் உங்களுடன் இருக்கிறேன். தயவுசெய்து உடனடியாக 24/7 கிரண் உதவி எண் 1800-599-0019 அல்லது டெலி-மனஸ் 14416 ஐ அழைக்கவும். உங்கள் ஆலோசகருக்கு உடனடியாக தெரிவிக்கிறேன். பாதுகாப்பாக இருங்கள்.`,
 
-  hi: `मैं आपकी बात सुन रहा/रही हूं। आपका दर्द वास्तविक है और आप अकेले नहीं हैं। कृपया अभी तुरंत सहायता से संपर्क करें:
+  kn: `ನೀವು ಇಷ್ಟೊಂದು ನೋವಿನಲ್ಲಿದ್ದೀರಿ ಎಂದು ಕೇಳಿ ನನಗೆ ತುಂಬಾ ದುಃಖವಾಗುತ್ತಿದೆ. ನೀವು ಒಂಟಿಯಲ್ಲ — ನಾನು ನಿಮ್ಮೊಂದಿಗಿದ್ದೇನೆ. ದಯವಿಟ್ಟು ತಕ್ಷಣ 24/7 ಕಿರಣ್ ಸಹಾಯವಾಣಿ 1800-599-0019 ಅಥವಾ ಟೆಲಿ-ಮಾನಸ್ 14416 ಗೆ ಕರೆ ಮಾಡಿ. ನಿಮ್ಮ ಸಲಹೆಗಾರರಿಗೆ ತಕ್ಷಣವೇ ತಿಳಿಸಲಾಗುತ್ತಿದೆ. ಸುರಕ್ಷಿತವಾಗಿರಿ.`,
 
-🆘 आपातकालीन: 112
-📞 टेली-मानस: 14416 / 1800-891-4416 (24/7, मुफ्त)
-👩 महिला हेल्पलाइन: 181
-👶 चाइल्डलाइन: 1098
-📱 iCall: 9152987821
+  ml: `നിങ്ങൾ ഇത്രയും വേദന അനുഭവിക്കുന്നു എന്ന് കേൾക്കുന്നതിൽ എനിക്ക് അതിയായ വിഷമമുണ്ട്. നിങ്ങൾ തനിച്ചല്ല — ഞാൻ നിങ്ങളോടൊപ്പമുണ്ട്. ദയവായി ഉടൻ തന്നെ 24/7 കിരൺ ഹെൽപ്പ് ലൈൻ 1800-599-0019 അല്ലെങ്കിൽ ടെലി-മാനസ് 14416 ലേക്ക് വിളിക്കുക. നിങ്ങളുടെ കൗൺസിലറെ ഞാൻ ഉടൻ അറിയിക്കുന്നുണ്ട്. സുരക്ഷിതരായിരിക്കൂ.`,
 
-आपके काउंसलर को सूचित कर दिया गया है। कृपया सुरक्षित रहें — मदद अभी उपलब्ध है।`,
+  mr: `तुम्ही इतक्या मोठ्या वेदनेतून जात आहात हे ऐकून मला खूप वाईट वाटले. तुम्ही एकटे नाही आहात — मी तुमच्या सोबत आहे. कृपया लगेच 24/7 किरण हेल्पलाइन 1800-599-0019 किंवा टेली-मानस 14416 वर कॉल करा. मी तुमच्या समुपदेशकाला लगेच सूचित करत आहे. कृपया सुरक्षित राहा.`,
 
-  te: `నేను మీ మాట వింటున్నాను. మీ బాధ నిజమైనది మరియు మీరు ఒంటరిగా లేరు. దయచేసి ఇప్పుడే సహాయం కోసం సంప్రదించండి:
+  bn: `আপনি এত কষ্টের মধ্যে আছেন শুনে আমার খুব খারাপ লাগছে। আপনি একা নন — আমি আপনার পাশে আছি। দয়া করে এখনই 24/7 কিরণ হেল্পলাইন 1800-599-0019 বা টেলি-মানস 14416-এ কল করুন। আমি এখনই আপনার কাউন্সেলরকে জানাচ্ছি। অনুগ্রহ করে নিরাপদ থাকুন।`,
 
-🆘 అత్యవసరం: 112
-📞 టెలి-మానస్: 14416 / 1800-891-4416 (24/7, ఉచితం)
-👩 మహిళా హెల్ప్‌లైన్: 181
-👶 చైల్డ్‌లైన్: 1098
-📱 iCall: 9152987821
-
-మీ కౌన్సెలర్‌కు తెలియజేయబడింది. దయచేసి సురక్షితంగా ఉండండి — సహాయం ఇప్పుడే అందుబాటులో ఉంది.`,
-
-  ta: `நான் உங்கள் பேச்சைக் கேட்கிறேன். உங்கள் வலி உண்மையானது, நீங்கள் தனியாக இல்லை. உடனடியாக உதவியை நாடுங்கள்:
-
-🆘 அவசரம்: 112
-📞 டெலி-மனஸ்: 14416 / 1800-891-4416 (24/7, இலவசம்)
-👩 பெண்கள் உதவி எண்: 181
-👶 சைல்ட்லைன்: 1098
-📱 iCall: 9152987821
-
-உங்கள் ஆலோசகருக்குத் தெரிவிக்கப்பட்டது. பாதுகாப்பாக இருங்கள் — உதவி இப்போதே கிடைக்கும்.`,
-
-  kn: `ನಾನು ನಿಮ್ಮ ಮಾತನ್ನು ಕೇಳುತ್ತಿದ್ದೇನೆ. ನಿಮ್ಮ ನೋವು ನಿಜವಾದದ್ದು ಮತ್ತು ನೀವು ಒಂಟಿಯಲ್ಲ. ದಯವಿಟ್ಟು ಈಗಲೇ ಸಹಾಯ ಪಡೆಯಿರಿ:
-
-🆘 ತುರ್ತು: 112
-📞 ಟೆಲಿ-ಮಾನಸ್: 14416 / 1800-891-4416 (24/7, ಉಚಿತ)
-👩 ಮಹಿಳಾ ಸಹಾಯವಾಣಿ: 181
-👶 ಚೈಲ್ಡ್‌ಲೈನ್: 1098
-📱 iCall: 9152987821
-
-ನಿಮ್ಮ ಸಲಹೆಗಾರರಿಗೆ ತಿಳಿಸಲಾಗಿದೆ. ಸುರಕ್ಷಿತವಾಗಿರಿ — ಸಹಾಯ ಈಗಲೇ ಲಭ್ಯವಿದೆ.`,
-
-  ml: `ഞാൻ നിങ്ങളുടെ വാക്കുകൾ കേൾക്കുന്നു. നിങ്ങളുടെ വേദന യഥാർത്ഥമാണ്, നിങ്ങൾ ഒറ്റയ്ക്കല്ല. ദയവായി ഇപ്പോൾ തന്നെ സഹായം തേടുക:
-
-🆘 അടിയന്തരം: 112
-📞 ടെലി-മാനസ്: 14416 / 1800-891-4416 (24/7, സൗജന്യം)
-👩 വനിതാ ഹെൽപ്‌ലൈൻ: 181
-👶 ചൈൽഡ്‌ലൈൻ: 1098
-📱 iCall: 9152987821
-
-നിങ്ങളുടെ കൗൺസിലറെ അറിയിച്ചിട്ടുണ്ട്. സുരക്ഷിതരായിരിക്കൂ — സഹായം ഇപ്പോൾ ലഭ്യമാണ്.`,
-
-  mr: `मी तुमचे ऐकतो/ऐकते आहे. तुमचे दुःख खरे आहे आणि तुम्ही एकटे नाही आहात. कृपया आत्ताच मदतीसाठी संपर्क करा:
-
-🆘 आपत्कालीन: 112
-📞 टेली-मानस: 14416 / 1800-891-4416 (24/7, मोफत)
-👩 महिला हेल्पलाइन: 181
-👶 चाइल्डलाइन: 1098
-📱 iCall: 9152987821
-
-तुमच्या समुपदेशकाला कळवण्यात आले आहे. कृपया सुरक्षित राहा — मदत आत्ता उपलब्ध आहे.`,
-
-  bn: `আমি আপনার কথা শুনছি। আপনার কষ্ট বাস্তব এবং আপনি একা নন। দয়া করে এখনই সাহায্যের জন্য যোগাযোগ করুন:
-
-🆘 জরুরি: 112
-📞 টেলি-মানস: 14416 / 1800-891-4416 (24/7, বিনামূল্যে)
-👩 মহিলা হেল্পলাইন: 181
-👶 চাইল্ডলাইন: 1098
-📱 iCall: 9152987821
-
-আপনার কাউন্সেলরকে জানানো হয়েছে। নিরাপদ থাকুন — সাহায্য এখনই পাওয়া যাচ্ছে।`,
-
-  gu: `હું તમારી વાત સાંભળી રહ્યો/રહી છું. તમારી પીડા વાસ્તવિક છે અને તમે એકલા નથી. કૃપા કરીને હમણાં જ મદદ માટે સંપર્ક કરો:
-
-🆘 કટોકટી: 112
-📞 ટેલી-માનસ: 14416 / 1800-891-4416 (24/7, મફત)
-👩 મહિલા હેલ્પલાઇન: 181
-👶 ચાઇલ્ડલાઇન: 1098
-📱 iCall: 9152987821
-
-તમારા કાઉન્સેલરને જાણ કરવામાં આવી છે. કૃપા કરીને સુરક્ષિત રહો — મદદ હમણાં ઉપલબ્ધ છે.`,
+  gu: `તમે આટલી પીડામાં છો તે સાંભળીને મને ખૂબ દુઃખ થયું. તમે એકલા નથી — હું તમારી સાથે છું. કૃપા કરીને હમણાં જ 24/7 કિરણ હેલ્પલાઇન 1800-599-0019 અથવા ટેલી-માનસ 14416 પર કૉલ કરો. હું તમારા કાઉન્સેલરને પણ તરત જ જાણ કરું છું. કૃપા કરીને સુરક્ષિત રહો.`
 };
 
 const getSafetyMessage = (langCode = 'en') => {
@@ -152,262 +207,308 @@ const getSafetyMessage = (langCode = 'en') => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// 3. GEMINI API CALL — Unified analysis + response
+// 4. AAROHAN AI SYSTEM PROMPT (Strict Compliance)
 // ─────────────────────────────────────────────────────────────
-const AI_SYSTEM_PROMPT = `You are AAROHAN AI, an empathetic support assistant for crime victims under the SC/ST Prevention of Atrocities Act support program.
+const AI_SYSTEM_PROMPT = `You are AAROHAN AI, an empathetic support chatbot for crime victims, available in multiple Indian languages. Every reply must directly engage with what the person just wrote — never return a generic greeting or a templated "how are you feeling" message when they have shared something specific.
 
-For the victim's message, you must:
-1. Detect the language of the input text.
-2. Classify overall sentiment (positive / neutral / negative) with a confidence score (0-1).
-3. Identify the top emotions present (choose from: fear, sadness, anger, joy, disgust, surprise, neutral) each with an approximate probability (0-1), summing to roughly 1.0.
-4. Compute a distress_score from 0 (calm/stable) to 100 (severe crisis), weighing negative sentiment, fear/sadness/anger intensity, any expression of hopelessness, self-harm ideation, suicidal intent, or being in immediate danger very heavily.
-5. Set crisis_flag to true if there is ANY indication — direct or indirect — of self-harm, suicidal thoughts, wanting to die, or immediate physical danger. Err strongly toward flagging when uncertain; false positives are far safer than false negatives here.
-6. Generate a warm, non-judgmental, brief (2-3 sentence) reply IN THE SAME LANGUAGE as the input. Never give medical, psychiatric, or legal advice. Never claim to be a licensed therapist. If crisis_flag is true, your reply must acknowledge their pain, state that support is being arranged immediately, and mention that help is available right now via the helpline.
+Core behavior:
+1. Always respond in the same language/script the user used.
+2. Reflect back the specific content of their message in your own words before offering support — show you understood what they said, not just that a message arrived.
+3. Never minimize, never rush to "fix," never lecture. Validate the emotion first.
+4. Keep responses short (2-4 sentences), warm, and non-clinical.
 
-Return ONLY valid JSON, no other text, in exactly this schema:
+CRISIS PROTOCOL — trigger immediately if the message contains any indication of:
+- suicidal ideation, wanting to die, wanting to end one's life
+- self-harm intent or plans
+- immediate danger from another person
+
+When triggered, your reply MUST:
+- Acknowledge their pain directly and specifically (not generically)
+- Stay present with them — do not change the subject
+- Gently and clearly offer a crisis helpline appropriate to their region/language (e.g., for India: KIRAN Mental Health Helpline 1800-599-0019, available 24/7 in multiple languages; Vandrevala Foundation 1860-2662-345; Tele-MANAS 14416 / 1800-891-4416; Emergency 112)
+- Encourage them to stay safe and let them know a counselor is being notified
+- NOT ask multiple questions in a row, NOT provide instructions on methods of harm, NOT delay before offering the helpline
+
+Example (Hindi input: "मैं इस जिंदगी को खत्म करना चाहती हूं"):
+Good reply: "मुझे सुनकर बहुत दुख हुआ कि आप इतनी तकलीफ में हैं। आप अकेली नहीं हैं — मैं आपके साथ हूं। कृपया अभी KIRAN हेल्पलाइन 1800-599-0019 पर कॉल करें, वे 24 घंटे उपलब्ध हैं। मैं आपके काउंसलर को भी तुरंत सूचित कर रही हूं।"
+
+Bad reply (do not do this): "साझा करने के लिए धन्यवाद। मैं आरोहन हूं... आज आप कैसा महसूस कर रहे हैं?" ← generic, ignores the disclosure, must never happen for crisis content.
+
+After a crisis-protocol reply, do not close the conversation — continue actively listening and stay engaged until a human counselor takes over.
+
+Return ONLY valid JSON in this format:
 {
-  "language_detected": "ISO code, e.g. te, hi, en",
+  "language_detected": "ISO code, e.g. hi, te, en",
   "sentiment": {"label": "positive|neutral|negative", "score": 0.0},
-  "emotions": [{"label": "string", "score": 0.0}],
+  "emotions": [{"label": "fear|sadness|anger|joy|disgust|surprise|neutral", "score": 0.0}],
   "distress_score": 0,
   "crisis_flag": false,
   "reply": "string in the detected language"
 }`;
 
-const analyzeAndRespond = async (userText, conversationHistory = [], language = 'en') => {
-  console.log(`\n[aiService] --- NEW MESSAGE RECEIVED ---`);
-  console.log(`[aiService] Raw input text: "${userText}"`);
-  console.log(`[aiService] User preferred language: ${language}`);
-
-  const apiKey = process.env.GROK_API_KEY;
-  const model = process.env.GROK_MODEL || 'grok-beta';
-
-  if (!apiKey) {
-    console.warn('[aiService] No GROK_API_KEY set — using smart fallback');
-    return getSmartFallback(userText, language);
-  }
-
-  const url = `https://api.x.ai/v1/chat/completions`;
-
-  // Build conversation context (last few turns for context)
-  let contextText = '';
-  if (conversationHistory.length > 0) {
-    const recentHistory = conversationHistory.slice(-6);
-    contextText = '\n\nRecent conversation context:\n' +
-      recentHistory.map(m => `${m.role === 'user' ? 'Victim' : 'AAROHAN'}: ${m.content}`).join('\n');
-  }
-
-  const userPrompt = `${contextText}\n\nVictim's latest message: "${userText}"\n\nUser's preferred language: ${language}`;
-
-  const requestBody = {
-    model: model,
-    messages: [
-      { role: 'system', content: AI_SYSTEM_PROMPT },
-      { role: 'user', content: userPrompt }
-    ],
-    temperature: 0.7,
-    max_tokens: 1024,
-    response_format: { type: "text" }
-  };
-
-  console.log(`[aiService] EXACT PROMPT BEING SENT TO GROK:\n--- SYSTEM PROMPT ---\n${AI_SYSTEM_PROMPT}\n--- USER PROMPT ---\n${userPrompt}\n-------------------`);
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      const errBody = await response.text().catch(() => '');
-      console.error(`[aiService] GROK API EXCEPTION: ${response.status} - ${errBody}`);
-      const fallbackResponse = getSmartFallback(userText, language);
-      console.log(`[aiService] FULL RESPONSE PAYLOAD (Fallback):`, JSON.stringify(fallbackResponse));
-      return fallbackResponse;
-    }
-
-    const data = await response.json();
-
-    // Extract text from Grok response
-    const rawText = data?.choices?.[0]?.message?.content;
-    if (!rawText) {
-      console.error('[aiService] GROK API EXCEPTION: Empty response choices', JSON.stringify(data));
-      const fallbackResponse = getSmartFallback(userText, language);
-      console.log(`[aiService] FULL RESPONSE PAYLOAD (Fallback):`, JSON.stringify(fallbackResponse));
-      return fallbackResponse;
-    }
-
-    console.log(`[aiService] GROK CALL SUCCESS. Reply Text:\n${rawText}`);
-
-    // Parse JSON — handle potential markdown code fences
-    let cleanText = rawText.trim();
-    if (cleanText.startsWith('```')) {
-      cleanText = cleanText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-    }
-
-    const result = JSON.parse(cleanText);
-
-    const finalResponse = {
-      language_detected: result.language_detected || language,
-      sentiment: result.sentiment || { label: 'neutral', score: 0.5 },
-      emotions: Array.isArray(result.emotions) ? result.emotions : [{ label: 'neutral', score: 1.0 }],
-      distress_score: typeof result.distress_score === 'number' ? Math.min(100, Math.max(0, result.distress_score)) : 20,
-      crisis_flag: !!result.crisis_flag,
-      reply: result.reply || getSmartFallback(userText, language).reply,
-      source: 'grok'
-    };
-
-    console.log(`[aiService] FULL RESPONSE PAYLOAD (Grok):`, JSON.stringify(finalResponse));
-    return finalResponse;
-
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      console.error('[aiService] GROK API EXCEPTION: Request timed out after 20s');
-    } else {
-      console.error('[aiService] GROK API EXCEPTION:', error.message);
-    }
-    const fallbackResponse = getSmartFallback(userText, language);
-    console.log(`[aiService] FULL RESPONSE PAYLOAD (Fallback):`, JSON.stringify(fallbackResponse));
-    return fallbackResponse;
-  }
-};
-
 // ─────────────────────────────────────────────────────────────
-// 4. SMART KEYWORD FALLBACK (when Gemini is unavailable)
+// 5. UNIFIED ANALYSIS + LLM CALL (With Graceful Smart Fallback)
 // ─────────────────────────────────────────────────────────────
 const LANG_MAP = {
   'English': 'en', 'Telugu (తెలుగు)': 'te', 'Hindi (हिंदी)': 'hi',
-  'Tamil (தமிழ்)': 'ta', 'Kannada (కన్నడ)': 'kn', 'Malayalam (മലയാളം)': 'ml',
+  'Tamil (தமிழ்)': 'ta', 'Kannada (ಕನ್ನಡ)': 'kn', 'Malayalam (മലയാളം)': 'ml',
   'Spanish (Español)': 'es', 'French (Français)': 'fr',
   'Marathi (मराठी)': 'mr', 'Bengali (বাংলা)': 'bn', 'Gujarati (ગુજરાતી)': 'gu',
   'en': 'en', 'te': 'te', 'hi': 'hi', 'ta': 'ta', 'kn': 'kn', 'ml': 'ml',
   'es': 'es', 'fr': 'fr', 'mr': 'mr', 'bn': 'bn', 'gu': 'gu'
 };
 
-const FALLBACK_REPLIES = {
+const detectInputLanguage = (text, userPref = 'en') => {
+  if (!text) return LANG_MAP[userPref] || 'en';
+  // Devanagari script detection (Hindi/Marathi)
+  if (/[\u0900-\u097F]/.test(text)) return 'hi';
+  // Telugu script detection
+  if (/[\u0C00-\u0C7F]/.test(text)) return 'te';
+  // Tamil script detection
+  if (/[\u0B80-\u0BFF]/.test(text)) return 'ta';
+  // Kannada script detection
+  if (/[\u0C80-\u0CFF]/.test(text)) return 'kn';
+  // Malayalam script detection
+  if (/[\u0D00-\u0D7F]/.test(text)) return 'ml';
+  // Bengali script detection
+  if (/[\u0980-\u09FF]/.test(text)) return 'bn';
+  // Gujarati script detection
+  if (/[\u0A80-\u0AFF]/.test(text)) return 'gu';
+  
+  return LANG_MAP[userPref] || 'en';
+};
+
+const analyzeAndRespond = async (userText, conversationHistory = [], language = 'en') => {
+  const detectedLang = detectInputLanguage(userText, language);
+  const keywordCrisis = getKeywordCrisisFlag(userText);
+  const urgencyFlag = getUrgencyFlag(userText);
+
+  console.log(`\n[aiService] --- NEW MESSAGE ---`);
+  console.log(`[aiService] Text: "${userText}"`);
+  console.log(`[aiService] Detected Lang: ${detectedLang} | Keyword Crisis: ${keywordCrisis} | Urgency: ${urgencyFlag}`);
+
+  // If keyword safety check immediately flags crisis, we can still query the LLM
+  // or construct an immediate verified crisis response
+  const grokApiKey = process.env.GROK_API_KEY;
+  const grokModel = process.env.GROK_MODEL || 'grok-2-1212';
+
+  let contextText = '';
+  if (conversationHistory.length > 0) {
+    const recentHistory = conversationHistory.slice(-6);
+    contextText = '\n\nRecent conversation history:\n' +
+      recentHistory.map(m => `${m.role === 'user' ? 'Victim' : 'AAROHAN'}: ${m.content}`).join('\n');
+  }
+
+  const userPrompt = `${contextText}\n\nVictim's latest message: "${userText}"\n\nDetected/Preferred language: ${detectedLang}`;
+
+  // Try LLM providers if valid keys exist
+  let llmResult = null;
+
+  if (grokApiKey && !grokApiKey.includes('your_api_key')) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+
+      const response = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${grokApiKey}`
+        },
+        body: JSON.stringify({
+          model: grokModel,
+          messages: [
+            { role: 'system', content: AI_SYSTEM_PROMPT },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.6,
+          max_tokens: 1024
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeout);
+
+      if (response.ok) {
+        const data = await response.json();
+        const rawContent = data?.choices?.[0]?.message?.content;
+        if (rawContent) {
+          let clean = rawContent.trim();
+          if (clean.startsWith('```')) {
+            clean = clean.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+          }
+          llmResult = JSON.parse(clean);
+        }
+      }
+    } catch (err) {
+      console.warn('[aiService] Grok API unavailable:', err.message);
+    }
+  }
+
+  // If LLM returned valid response
+  if (llmResult && typeof llmResult === 'object') {
+    const isCrisis = keywordCrisis || !!llmResult.crisis_flag;
+    const sentimentObj = llmResult.sentiment || { label: isCrisis ? 'negative' : 'neutral', score: isCrisis ? 0.95 : 0.5 };
+    const primaryEmotion = llmResult.emotions?.[0]?.label || (isCrisis ? 'fear' : 'neutral');
+    
+    // Compute explainable score
+    const distressScore = computeDistressScore({
+      sentimentScore: sentimentObj.score || 0.7,
+      sentimentLabel: sentimentObj.label || 'negative',
+      emotionLabel: primaryEmotion,
+      crisisFlag: isCrisis,
+      urgencyFlag
+    });
+
+    let reply = llmResult.reply;
+    if (isCrisis && (!reply || reply.includes('Thank you') || reply.includes('साझा करने के लिए धन्यवाद'))) {
+      reply = getSafetyMessage(detectedLang);
+    }
+
+    return {
+      language_detected: llmResult.language_detected || detectedLang,
+      sentiment: sentimentObj,
+      emotions: Array.isArray(llmResult.emotions) && llmResult.emotions.length > 0
+        ? llmResult.emotions
+        : [{ label: primaryEmotion, score: 0.8 }],
+      distress_score: distressScore,
+      distress_band: getDistressBand(distressScore),
+      crisis_flag: isCrisis,
+      reply: reply || getSafetyMessage(detectedLang),
+      source: 'llm'
+    };
+  }
+
+  // Otherwise, use Smart Contextual Fallback
+  return getSmartFallback(userText, language);
+};
+
+// ─────────────────────────────────────────────────────────────
+// 6. CONTEXT-AWARE SMART FALLBACK (Zero Generic Canned Replies)
+// ─────────────────────────────────────────────────────────────
+const CONTEXTUAL_REPLIES = {
+  crisis: {
+    hi: "मुझे सुनकर बहुत दुख हुआ कि आप इतनी गहरी तकलीफ में हैं। आप अकेली नहीं हैं — मैं आपके साथ हूं। कृपया अभी KIRAN हेल्पलाइन 1800-599-0019 या टेली-मानस 14416 पर कॉल करें (24 घंटे मुफ्त)। आपके काउंसलर को तुरंत सूचित कर दिया गया है।",
+    en: "I hear how painful things are right now, and I want you to know you are not alone. Please reach out immediately to the 24/7 KIRAN Helpline 1800-599-0019 or Tele-MANAS 14416. Your counselor has been notified to assist you right away.",
+    te: "మీరు ఇంతటి తీవ్రమైన బాధలో ఉన్నారని వినడం నాకు చాలా బాధగా ఉంది. మీరు ఒంటరిగా లేరు. దయచేసి వెంటనే 24/7 కిరణ్ హెల్ప్‌లైన్ 1800-599-0019 లేదా టెలి-మానస్ 14416 కు కాల్ చేయండి. మీ కౌన్సెలర్‌కు వెంటనే సమాచారం అందిస్తున్నాము.",
+    ta: "நீங்கள் இவ்வளவு வேதனையில் இருப்பதை அறிந்து நான் மிகவும் வருந்துகிறேன். நீங்கள் தனியாக இல்லை. தயவுசெய்து உடனடியாக 24/7 கிரண் உதவி எண் 1800-599-0019 ஐ அழைக்கவும். உங்கள் ஆலோசகருக்கு உடனடியாக தெரிவிக்கிறோம்."
+  },
   fear: {
-    en: "I hear how frightening this feels right now. You are safe here with me. Take a slow, deep breath — I am listening and standing with you. Would you like me to connect you with your assigned counselor?",
-    hi: "मैं समझ सकता/सकती हूं कि यह कितना डरावना लग रहा है। आप यहां सुरक्षित हैं। एक गहरी सांस लें — मैं आपके साथ हूं। क्या आप चाहेंगे कि मैं आपके काउंसलर से संपर्क करूं?",
-    te: "ఇది ఎంత భయంగా ఉందో నేను అర్థం చేసుకుంటున్నాను. మీరు ఇక్కడ సురక్షితంగా ఉన్నారు. నిదానంగా శ్వాస తీసుకోండి — నేను మీతో ఉన్నాను. మీ కౌన్సెలర్‌తో కనెక్ట్ చేయమంటారా?",
-    ta: "இது எவ்வளவு பயமாக இருக்கிறது என்பதை நான் புரிந்துகொள்கிறேன். நீங்கள் இங்கே பாதுகாப்பாக இருக்கிறீர்கள். மெதுவாக மூச்சு விடுங்கள் — நான் உங்களுடன் இருக்கிறேன்."
+    hi: "मैं समझ सकता/सकती हूं कि इस समय आप कितना भयभीत और असुरक्षित महसूस कर रहे हैं। आप यहां सुरक्षित हैं, और आपकी सुरक्षा हमारी सर्वोच्च प्राथमिकता है। क्या आप चाहते हैं कि मैं आपके काउंसलर से तुरंत बात करवाऊं?",
+    en: "I hear how frightening and overwhelming this feels right now. You are in a safe space here with me. Take a slow, gentle breath — I am listening. Would you like me to connect you with your assigned counselor?",
+    te: "ఇది ఎంత భయంగా ఉందో నేను అర్థం చేసుకుంటున్నాను. మీరు ఇక్కడ సురಕ್ಷితంగా ఉన్నారు. నిదానంగా శ్వాస తీసుకోండి — నేను మీతో ఉన్నాను. మీ కౌన్సెలర్‌తో మాట్లాడతారా?",
+    ta: "இது எவ்வளவு பயமாக இருக்கிறது என்பதை நான் உணர்கிறேன். நீங்கள் இங்கே பாதுகாப்பாக இருக்கிறீர்கள். நான் உங்களுடன் இருக்கிறேன். உங்கள் ஆலோசகரை தொடர்பு கொள்ள விரும்புகிறீர்களா?"
   },
   sadness: {
-    en: "I am so sorry you are carrying this weight right now. It is completely okay to feel this way, and it is okay to take things one step at a time. I am here to support you in any way you need.",
-    hi: "मुझे बहुत दुख है कि आप इस बोझ को उठा रहे हैं। ऐसा महसूस करना बिल्कुल ठीक है। मैं आपकी मदद के लिए यहां हूं।",
-    te: "మీరు ఈ బరువును మోస్తున్నందుకు నాకు చాలా బాధగా ఉంది. ఇలా అనిపించడం పూర్తిగా సహజం. నేను మీకు సహాయం చేయడానికి ఇక్కడ ఉన్నాను.",
-    ta: "நீங்கள் இந்தச் சுமையைத் தாங்குவது எனக்கு மிகவும் வருத்தமளிக்கிறது. இப்படி உணர்வது முற்றிலும் சரி. நான் உங்களுக்கு உதவ இங்கே இருக்கிறேன்."
+    hi: "मुझे बहुत दुख है कि आप इस भारी दर्द और पीड़ा को सह रहे हैं। ऐसा महसूस होना स्वाभाविक है, और आपको इसे अकेले नहीं सहना पड़ेगा। मैं आपकी पूरी सहायता के लिए यहां उपस्थित हूं।",
+    en: "I am so sorry you are carrying such heavy pain and sadness right now. What you are feeling is completely valid, and you do not have to walk through this alone. I am here with you.",
+    te: "మీరు ఇంతటి బాధను మోస్తున్నందుకు నాకు చాలా విచారంగా ఉంది. మీ భావాలు సహజమైనవి. మీరు ఒంటరిగా లేరు, నేను మీకు సహాయం చేయడానికి ఇక్కడ ఉన్నాను.",
+    ta: "நீங்கள் இந்தத் துயரத்தைத் தாங்குவது எனக்கு மிகுந்த வருத்தமளிக்கிறது. உங்கள் உணர்வுகள் புரிந்துகொள்ளத்தக்கவை. நான் உங்களுக்கு ஆதரவாக இருக்கிறேன்."
   },
   anger: {
-    en: "It is completely understandable to feel angry after what you have experienced. Your feelings are valid and important. I am here to help you navigate through this safely.",
-    hi: "जो आपने अनुभव किया है उसके बाद गुस्सा महसूस करना पूरी तरह से स्वाभाविक है। आपकी भावनाएं मान्य हैं। मैं आपकी मदद के लिए यहां हूं।",
-    te: "మీరు అనుభవించిన తర్వాత కోపం రావడం పూర్తిగా సహజం. మీ భావాలు చెల్లుబాటు అవుతాయి. నేను మీకు సహాయం చేయడానికి ఇక్కడ ఉన్నాను.",
-    ta: "நீங்கள் அனுபவித்ததன் பிறகு கோபமாக உணர்வது முற்றிலும் இயல்பானது. உங்கள் உணர்வுகள் செல்லுபடியாகும். நான் உங்களுக்கு உதவ இங்கே இருக்கிறேன்."
+    hi: "आपके साथ जो हुआ, उसके बाद ऐसा गुस्सा और आक्रोश महसूस करना पूरी तरह स्वाभाविक और मान्य है। आपके अधिकार और न्याय महत्वपूर्ण हैं। हम इसे सुरक्षित तरीके से सुलझाने में आपके साथ हैं।",
+    en: "It is completely understandable to feel angry after everything you have been subjected to. Your anger is valid, and your rights matter. I am here to support you through every step.",
+    te: "మీకు జరిగిన దానికి కోపం రావడం పూర్తిగా సహజం. మీ భావాలు ముఖ్యమైనవి. మీకు అండగా ఉండటానికి నేను ఇక్కడ ఉన్నాను.",
+    ta: "நடந்த சம்பவத்திற்குப் பிறகு கோபம் வருவது முற்றிலும் இயல்பானது. உங்கள் உணர்வுகள் மதிக்கத்தக்கவை. உங்களுக்கு உதவ நான் தயாராக இருக்கிறேன்."
   },
-  joy: {
-    en: "I am glad to hear positivity in your words! Every small step forward matters. Keep believing in your strength and the progress you are making.",
-    hi: "आपकी बातों में सकारात्मकता सुनकर मुझे खुशी हुई! हर छोटा कदम मायने रखता है। अपनी ताकत पर विश्वास रखें।",
-    te: "మీ మాటల్లో సానుకూలత వినడం నాకు సంతోషంగా ఉంది! ప్రతి చిన్న అడుగు ముఖ్యమైనది. మీ బలాన్ని నమ్మండి.",
-    ta: "உங்கள் வார்த்தைகளில் நேர்மறையைக் கேட்பது மகிழ்ச்சி! ஒவ்வொரு சிறிய அடியும் முக்கியமானது. உங்கள் வலிமையை நம்புங்கள்."
+  joy_positive: {
+    hi: "आपकी बातों में यह सकारात्मकता और हिम्मत देखकर मुझे बहुत खुशी हुई। हर छोटा कदम आपकी सुरक्षा और न्याय की दिशा में एक बड़ी जीत है। मैं हमेशा आपके साथ हूं।",
+    en: "I am so glad to hear strength and hope in your words. Every small step forward is an important milestone. Keep trusting in your resilience — I am here whenever you need.",
+    te: "మీ మాటల్లో బలాన్ని వినడం సంతోషంగా ఉంది. ప్రతి అడుగు ముందడుగుగా మారుతుంది. నేను ఎల్లప్పుడూ మీకు తోడుగా ఉంటాను.",
+    ta: "உங்கள் வார்த்தைகளில் நம்பிக்கையைக் காண்பது மகிழ்ச்சி அளிக்கிறது. நீங்கள் எடுக்கும் ஒவ்வொரு அடியும் முக்கியமானது. நான் எப்போதும் உங்களுக்கு ஆதரவாக இருப்பேன்."
   },
-  neutral: {
-    en: [
-      "Thank you for sharing with me. I am AAROHAN, your empathetic support assistant. How are you feeling today?",
-      "I am here to listen. Please take your time and share whatever is on your mind.",
-      "I hear you. You are in a safe space. Would you like to talk more about how you are feeling?"
-    ],
-    hi: "साझा करने के लिए धन्यवाद। मैं आरोहन हूं, आपका सहानुभूतिपूर्ण सहायक। आज आप कैसा महसूस कर रहे हैं?",
-    te: "పంచుకున్నందుకు ధన్యవాదాలు. నేను ఆరోహన్, మీ సానుభూతి సహాయకుడిని. మీరు ఈరోజు ఎలా అనుభూతి చెందుతున్నారు?",
-    ta: "பகிர்ந்ததற்கு நன்றி. நான் ஆரோஹன், உங்கள் அனுதாப உதவியாளர். இன்று நீங்கள் எப்படி உணர்கிறீர்கள்?"
+  general_support: {
+    hi: "मैं आपकी बात ध्यानपूर्वक सुन रहा/रही हूं। आप जो भी कहना चाहते हैं, बिना किसी झिझक के साझा कर सकते हैं। यह एक सुरक्षित मंच है।",
+    en: "I am listening closely to what you are sharing. Please take your time — you are in a safe and supportive space.",
+    te: "నేను మీ మాటలను శ్రద్ధగా వింటున్నాను. మీకు ఏది అనిపిస్తే అది నిర్భయంగా పంచుకోండి. ఇది సురక్షితమైన ప్రదేశం.",
+    ta: "நான் உங்கள் வார்த்தைகளை கவனமாகக் கேட்கிறேன். தயங்காமல் உங்கள் எண்ணங்களைப் பகிர்ந்து கொள்ளுங்கள்."
   }
 };
 
 const getSmartFallback = (userText, language = 'en') => {
   const lower = (userText || '').toLowerCase();
-  const langCode = LANG_MAP[language] || 'en';
-
-  // Crisis check (reuse same keyword list)
+  const langCode = detectInputLanguage(userText, language);
   const isCrisis = getKeywordCrisisFlag(userText);
-  if (isCrisis) {
-    return {
-      language_detected: langCode,
-      sentiment: { label: 'negative', score: 0.95 },
-      emotions: [{ label: 'fear', score: 0.5 }, { label: 'sadness', score: 0.4 }, { label: 'anger', score: 0.1 }],
-      distress_score: 95,
-      crisis_flag: true,
-      reply: getSafetyMessage(langCode),
-      source: 'fallback'
-    };
-  }
 
-  // Keyword-based emotion detection (improved)
-  const severeWords = ['terrified', 'bleeding', 'hiding', 'beaten', 'abused', 'attacked', 'raped', 'molested', 'assaulted'];
-  const fearWords = ['scared', 'afraid', 'panic', 'terrified', 'frightened', 'anxious', 'worried', 'nightmare', 'threatened', 'danger', 'unsafe'];
-  const sadWords = ['sad', 'crying', 'hopeless', 'depressed', 'lonely', 'alone', 'lost', 'grief', 'mourning', 'miss', 'heartbroken', 'hurt', 'pain'];
-  const angerWords = ['angry', 'furious', 'rage', 'frustrated', 'mad', 'unfair', 'injustice', 'betrayed', 'hate'];
-  const joyWords = ['happy', 'good', 'great', 'better', 'hopeful', 'thankful', 'grateful', 'safe', 'calm', 'peaceful', 'okay', 'fine', 'relieved'];
+  // Keyword emotion recognition
+  const severeFearWords = ['terrified', 'threatened', 'danger', 'unsafe', 'attacked', 'panic', 'hiding', 'beaten', 'abused', 'खतरा', 'भयभीत'];
+  const fearWords = ['scared', 'afraid', 'frightened', 'anxious', 'worried', 'nightmare', 'डर', 'भय', 'घबराहट', 'ഭയം', 'பயம்', 'భయం'];
+  const sadWords = ['sad', 'crying', 'hopeless', 'depressed', 'lonely', 'alone', 'lost', 'grief', 'mourning', 'heartbroken', 'hurt', 'pain', 'दुख', 'दर्द', 'रोना', 'अकेला', 'उदास', 'బాధ', 'துக்கம்'];
+  const angerWords = ['angry', 'furious', 'rage', 'frustrated', 'mad', 'unfair', 'injustice', 'betrayed', 'hate', 'गुस्सा', 'क्रोध', 'नाइंसाफी', 'కోపం', 'கோபம்'];
+  const positiveWords = ['happy', 'good', 'great', 'better', 'hopeful', 'thankful', 'grateful', 'safe', 'calm', 'peaceful', 'खुश', 'अच्छा', 'बेहतर', 'శాంతి', 'மகிழ்ச்சி'];
 
   let primaryEmotion = 'neutral';
-  let distressScore = 20;
   let sentimentLabel = 'neutral';
   let sentimentScore = 0.5;
 
-  if (severeWords.some(w => lower.includes(w))) {
+  if (isCrisis) {
     primaryEmotion = 'fear';
-    distressScore = 82;
     sentimentLabel = 'negative';
-    sentimentScore = 0.9;
+    sentimentScore = 0.95;
+  } else if (severeFearWords.some(w => lower.includes(w))) {
+    primaryEmotion = 'fear';
+    sentimentLabel = 'negative';
+    sentimentScore = 0.92;
   } else if (fearWords.some(w => lower.includes(w))) {
     primaryEmotion = 'fear';
-    distressScore = 65;
     sentimentLabel = 'negative';
-    sentimentScore = 0.78;
+    sentimentScore = 0.82;
   } else if (sadWords.some(w => lower.includes(w))) {
     primaryEmotion = 'sadness';
-    distressScore = 55;
     sentimentLabel = 'negative';
-    sentimentScore = 0.72;
+    sentimentScore = 0.78;
   } else if (angerWords.some(w => lower.includes(w))) {
     primaryEmotion = 'anger';
-    distressScore = 50;
     sentimentLabel = 'negative';
-    sentimentScore = 0.7;
-  } else if (joyWords.some(w => lower.includes(w))) {
-    primaryEmotion = 'joy';
-    distressScore = 10;
-    sentimentLabel = 'positive';
     sentimentScore = 0.75;
+  } else if (positiveWords.some(w => lower.includes(w))) {
+    primaryEmotion = 'joy';
+    sentimentLabel = 'positive';
+    sentimentScore = 0.85;
   }
+
+  const isSevereFear = severeFearWords.some(w => lower.includes(w));
+  const isUrgent = getUrgencyFlag(userText) || isSevereFear;
+
+  // Calculate explainable distress score
+  const distressScore = computeDistressScore({
+    sentimentScore,
+    sentimentLabel,
+    emotionLabel: primaryEmotion,
+    crisisFlag: isCrisis,
+    urgencyFlag: isUrgent
+  });
+
+  // Pick language-specific response category
+  let replyTemplate;
+  if (isCrisis) {
+    replyTemplate = CONTEXTUAL_REPLIES.crisis;
+  } else if (primaryEmotion === 'fear') {
+    replyTemplate = CONTEXTUAL_REPLIES.fear;
+  } else if (primaryEmotion === 'sadness') {
+    replyTemplate = CONTEXTUAL_REPLIES.sadness;
+  } else if (primaryEmotion === 'anger') {
+    replyTemplate = CONTEXTUAL_REPLIES.anger;
+  } else if (primaryEmotion === 'joy') {
+    replyTemplate = CONTEXTUAL_REPLIES.joy_positive;
+  } else {
+    replyTemplate = CONTEXTUAL_REPLIES.general_support;
+  }
+
+  const reply = replyTemplate[langCode] || replyTemplate.en;
 
   // Build emotions array
   const emotions = [];
   if (primaryEmotion === 'fear') {
-    emotions.push({ label: 'fear', score: 0.6 }, { label: 'sadness', score: 0.25 }, { label: 'anger', score: 0.15 });
+    emotions.push({ label: 'fear', score: 0.65 }, { label: 'sadness', score: 0.25 }, { label: 'anger', score: 0.1 });
   } else if (primaryEmotion === 'sadness') {
-    emotions.push({ label: 'sadness', score: 0.6 }, { label: 'fear', score: 0.2 }, { label: 'neutral', score: 0.2 });
+    emotions.push({ label: 'sadness', score: 0.65 }, { label: 'fear', score: 0.2 }, { label: 'neutral', score: 0.15 });
   } else if (primaryEmotion === 'anger') {
-    emotions.push({ label: 'anger', score: 0.55 }, { label: 'sadness', score: 0.25 }, { label: 'fear', score: 0.2 });
+    emotions.push({ label: 'anger', score: 0.6 }, { label: 'sadness', score: 0.25 }, { label: 'fear', score: 0.15 });
   } else if (primaryEmotion === 'joy') {
-    emotions.push({ label: 'joy', score: 0.7 }, { label: 'neutral', score: 0.3 });
+    emotions.push({ label: 'joy', score: 0.75 }, { label: 'calm', score: 0.25 });
   } else {
-    emotions.push({ label: 'neutral', score: 0.7 }, { label: 'joy', score: 0.15 }, { label: 'sadness', score: 0.15 });
-  }
-
-  // Get language-appropriate reply
-  const replySet = FALLBACK_REPLIES[primaryEmotion] || FALLBACK_REPLIES.neutral;
-  let reply = replySet[langCode] || replySet.en;
-  
-  if (Array.isArray(reply)) {
-    reply = reply[Math.floor(Math.random() * reply.length)];
+    emotions.push({ label: 'neutral', score: 0.7 }, { label: 'calm', score: 0.3 });
   }
 
   return {
@@ -415,7 +516,8 @@ const getSmartFallback = (userText, language = 'en') => {
     sentiment: { label: sentimentLabel, score: sentimentScore },
     emotions,
     distress_score: distressScore,
-    crisis_flag: false,
+    distress_band: getDistressBand(distressScore),
+    crisis_flag: isCrisis,
     reply,
     source: 'fallback'
   };
@@ -425,8 +527,14 @@ const getSmartFallback = (userText, language = 'en') => {
 // EXPORTS
 // ─────────────────────────────────────────────────────────────
 module.exports = {
+  AI_SYSTEM_PROMPT,
   analyzeAndRespond,
   getKeywordCrisisFlag,
+  getUrgencyFlag,
+  computeDistressScore,
+  getDistressBand,
   getSafetyMessage,
-  getSmartFallback
+  getSmartFallback,
+  detectInputLanguage
 };
+

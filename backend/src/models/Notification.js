@@ -13,7 +13,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['support_request', 'system'],
+    enum: ['support_request', 'system', 'CRISIS_ALERT', 'EMERGENCY_SOS', 'HIGH_DISTRESS'],
     default: 'system'
   },
   message: {

@@ -1,6 +1,12 @@
 const ChatSession = require('../models/ChatSession');
 const ChatMessage = require('../models/ChatMessage');
 const EmotionAnalysis = require('../models/EmotionAnalysis');
+const Alert = require('../models/Alert');
+const Case = require('../models/Case');
+const Counselor = require('../models/Counselor');
+const Notification = require('../models/Notification');
+const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 const aiService = require('./aiService');
 
 /**
@@ -8,7 +14,7 @@ const aiService = require('./aiService');
  */
 const LANG_MAP = {
   'English': 'en', 'Telugu (తెలుగు)': 'te', 'Hindi (हिंदी)': 'hi',
-  'Tamil (தமிழ்)': 'ta', 'Kannada (కన్నడ)': 'kn', 'Malayalam (മലയാളം)': 'ml',
+  'Tamil (தமிழ்)': 'ta', 'Kannada (ಕನ್ನಡ)': 'kn', 'Malayalam (മലയാളം)': 'ml',
   'Spanish (Español)': 'es', 'French (Français)': 'fr',
   'Marathi (मराठी)': 'mr', 'Bengali (বাংলা)': 'bn', 'Gujarati (ગુજરાતી)': 'gu',
 };
@@ -16,13 +22,13 @@ const LANG_MAP = {
 const resolveLangCode = (lang) => LANG_MAP[lang] || lang || 'en';
 
 /**
- * Map Gemini emotion labels to EmotionAnalysis schema keys
+ * Map emotion labels to EmotionAnalysis schema keys
  */
 const EMOTION_LABEL_MAP = {
   'fear': 'Fearful', 'sadness': 'Sad', 'anger': 'Angry',
   'joy': 'Calm', 'disgust': 'Angry', 'surprise': 'Anxious',
-  'neutral': 'Neutral',
-  // Direct mappings (from fallback)
+  'neutral': 'Neutral', 'calm': 'Calm', 'anxiety': 'Anxious',
+  // Direct mappings
   'Fearful': 'Fearful', 'Sad': 'Sad', 'Angry': 'Angry',
   'Calm': 'Calm', 'Anxious': 'Anxious', 'Hopeful': 'Hopeful', 'Neutral': 'Neutral'
 };
@@ -30,20 +36,86 @@ const EMOTION_LABEL_MAP = {
 const mapEmotion = (label) => EMOTION_LABEL_MAP[label] || 'Neutral';
 
 /**
- * Compute distress band from score
+ * Independent Crisis Escalation Handler
+ * Creates Alert, notifies Counselor, and logs audit record in parallel
  */
-const getDistressBand = (score) => {
-  if (score >= 75) return 'Severe';
-  if (score >= 50) return 'High';
-  if (score >= 25) return 'Moderate';
-  return 'Low';
+const triggerCrisisEscalation = async (victimId, content, langCode, distressScore) => {
+  try {
+    // 1. Find active case for this victim
+    const activeCase = await Case.findOne({
+      victimId,
+      status: { $in: ['open', 'in-progress', 'assigned', 'resolved', 'pending'] }
+    }).sort({ createdAt: -1 });
+
+    const victimUser = await User.findById(victimId).select('name email phone state district');
+
+    // 2. Create CRITICAL Alert
+    const alert = await Alert.create({
+      caseId: activeCase ? activeCase._id : undefined,
+      victimId,
+      severity: 'CRITICAL',
+      alertType: 'CRISIS_SIGNAL',
+      description: `Immediate Crisis Signal: "${content.substring(0, 150)}${content.length > 150 ? '...' : ''}"`
+    });
+
+    console.log(`[chatbotService] 🚨 CRITICAL Alert created: ID ${alert._id}`);
+
+    // 3. Notify assigned counselor
+    let counselorNotified = false;
+    if (activeCase && activeCase.assignedCounselorId) {
+      const counselor = await Counselor.findById(activeCase.assignedCounselorId);
+      if (counselor && counselor.userId) {
+        await Notification.create({
+          recipientId: counselor.userId,
+          senderId: victimId,
+          type: 'CRISIS_ALERT',
+          message: `🚨 URGENT: Crisis signal detected for victim ${victimUser?.name || 'Case #' + (activeCase.caseId || activeCase._id)}: "${content.substring(0, 100)}..."`
+        });
+        counselorNotified = true;
+        console.log(`[chatbotService] 🔔 Counselor notified: ${counselor.userId}`);
+      }
+    }
+
+    // If no assigned counselor, notify state admin
+    if (!counselorNotified && victimUser?.state) {
+      const stateAdmin = await User.findOne({ role: 'admin', state: victimUser.state });
+      if (stateAdmin) {
+        await Notification.create({
+          recipientId: stateAdmin._id,
+          senderId: victimId,
+          type: 'CRISIS_ALERT',
+          message: `🚨 URGENT: Crisis signal detected for unassigned victim in ${victimUser.state}: "${content.substring(0, 100)}..."`
+        });
+        console.log(`[chatbotService] 🔔 State Admin notified: ${stateAdmin._id}`);
+      }
+    }
+
+    // 4. Create Audit Log entry
+    await AuditLog.create({
+      actorId: victimId,
+      actorRole: 'victim',
+      action: 'CRISIS_SIGNAL_FLAGGED',
+      targetType: 'ChatMessage',
+      caseId: activeCase?.caseId || 'N/A',
+      metadata: {
+        messageSnippet: content.substring(0, 200),
+        detectedLanguage: langCode,
+        distressScore,
+        alertId: alert._id,
+        timestamp: new Date()
+      }
+    }).catch(err => console.warn('[chatbotService] Audit log skipped:', err.message));
+
+  } catch (escalationErr) {
+    console.error('[chatbotService] Escalation handler error:', escalationErr.message);
+  }
 };
 
 /**
  * Process a victim's chat message — full pipeline:
- * 1. Keyword crisis check (instant)
- * 2. Gemini unified analysis + response
- * 3. Dual crisis override (keyword OR LLM crisis_flag)
+ * 1. Keyword & Urgency crisis check (instant)
+ * 2. LLM unified analysis (or smart fallback)
+ * 3. Dual crisis check & parallel counselor escalation
  * 4. Save real data to ChatMessage + EmotionAnalysis
  * 5. Return structured result
  */
@@ -60,6 +132,7 @@ const processVictimMessage = async (sessionId, victimId, content, language = 'En
 
   // 2. Run keyword crisis check FIRST (instant, no API needed)
   const keywordCrisis = aiService.getKeywordCrisisFlag(content);
+  const urgencyFlag = aiService.getUrgencyFlag(content);
 
   // 3. Get conversation history for context
   const contextLimit = parseInt(process.env.CHAT_CONTEXT_MESSAGES) || 15;
@@ -73,12 +146,12 @@ const processVictimMessage = async (sessionId, victimId, content, language = 'En
     content: msg.content
   }));
 
-  // 4. Call Gemini unified analysis (or smart fallback)
+  // 4. Call AI unified analysis (or smart contextual fallback)
   let analysis;
   try {
     analysis = await aiService.analyzeAndRespond(content, conversationHistory, language);
   } catch (error) {
-    console.error('[chatbotService] AI analysis failed:', error.message);
+    console.error('[chatbotService] AI analysis exception:', error.message);
     analysis = aiService.getSmartFallback(content, language);
   }
 
@@ -86,17 +159,24 @@ const processVictimMessage = async (sessionId, victimId, content, language = 'En
   const isCrisis = keywordCrisis || analysis.crisis_flag;
 
   if (isCrisis) {
-    // Override LLM reply with FIXED safety message — never let LLM compose crisis words
-    analysis.reply = aiService.getSafetyMessage(analysis.language_detected || langCode);
     analysis.crisis_flag = true;
     analysis.distress_score = Math.max(analysis.distress_score, 90);
+    analysis.distress_band = 'Critical';
+
+    // If reply is missing or generic greeting, ensure safety message with Indian Helplines
+    if (!analysis.reply || analysis.reply.includes('Thank you for sharing') || analysis.reply.includes('साझा करने के लिए धन्यवाद')) {
+      analysis.reply = aiService.getSafetyMessage(analysis.language_detected || langCode);
+    }
+
+    // Trigger parallel escalation without blocking the response
+    triggerCrisisEscalation(victimId, content, analysis.language_detected || langCode, analysis.distress_score);
   }
 
-  const distressBand = getDistressBand(analysis.distress_score);
+  const distressBand = analysis.distress_band || aiService.getDistressBand(analysis.distress_score);
   const primaryEmotionRaw = analysis.emotions?.[0]?.label || 'neutral';
   const primaryEmotion = mapEmotion(primaryEmotionRaw);
 
-  // 6. Save victim message with real metadata
+  // 6. Save victim message with full metadata
   const userMessage = await ChatMessage.create({
     sessionId: session._id,
     senderType: 'victim',
@@ -110,12 +190,13 @@ const processVictimMessage = async (sessionId, victimId, content, language = 'En
       sentiment: analysis.sentiment,
       emotions: analysis.emotions,
       crisis_flag: isCrisis,
+      urgency_flag: urgencyFlag,
       language_detected: analysis.language_detected,
       source: analysis.source
     }
   });
 
-  // 7. Update EmotionAnalysis record for counselor reports
+  // 7. Update EmotionAnalysis record for counselor reports & trend charts
   try {
     let emotionDoc = await EmotionAnalysis.findOne({ victimId });
     if (!emotionDoc) {
@@ -134,14 +215,19 @@ const processVictimMessage = async (sessionId, victimId, content, language = 'En
     }
 
     // Rolling average distress score (weighted toward recent)
-    emotionDoc.distressScore = Math.round(
-      (emotionDoc.distressScore * 0.4) + (analysis.distress_score * 0.6)
-    );
-    emotionDoc.distressBand = getDistressBand(emotionDoc.distressScore);
+    if (isCrisis) {
+      emotionDoc.distressScore = Math.max(85, analysis.distress_score);
+    } else {
+      emotionDoc.distressScore = Math.round(
+        (emotionDoc.distressScore * 0.35) + (analysis.distress_score * 0.65)
+      );
+    }
+    
+    emotionDoc.distressBand = aiService.getDistressBand(emotionDoc.distressScore);
     emotionDoc.primaryEmotion = primaryEmotion;
     emotionDoc.sessionId = session._id;
 
-    // Increment emotion count
+    // Increment emotion breakdown count
     if (emotionDoc.emotionsBreakdown[primaryEmotion] !== undefined) {
       emotionDoc.emotionsBreakdown[primaryEmotion] += 1;
     } else {
@@ -150,7 +236,7 @@ const processVictimMessage = async (sessionId, victimId, content, language = 'En
 
     // Add to recent log
     emotionDoc.recentLog.unshift({
-      message: content.substring(0, 100),
+      message: content.substring(0, 120),
       emotion: primaryEmotion,
       distressScore: analysis.distress_score,
       timestamp: new Date()
@@ -184,7 +270,7 @@ const processVictimMessage = async (sessionId, victimId, content, language = 'En
     }
   });
 
-  // 10. Return full structured result
+  // 10. Return structured result
   return {
     userMessage,
     aiMessage,
@@ -194,6 +280,7 @@ const processVictimMessage = async (sessionId, victimId, content, language = 'En
       distress_score: analysis.distress_score,
       distress_band: distressBand,
       crisis_flag: isCrisis,
+      urgency_flag: urgencyFlag,
       language_detected: analysis.language_detected || langCode,
       primary_emotion: primaryEmotionRaw,
       primary_emotion_mapped: primaryEmotion,
@@ -205,3 +292,4 @@ const processVictimMessage = async (sessionId, victimId, content, language = 'En
 module.exports = {
   processVictimMessage
 };
+

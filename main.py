@@ -57,10 +57,27 @@ sentiment_model = pipeline("sentiment-analysis", model=model_sentiment)
 emotion_model = pipeline("text-classification", model=model_emotion, top_k=None)
 print("Models loaded successfully!")
 
-# ---------- Crisis keywords ----------
-CRISIS_KEYWORDS = ["end my life", "can't go on", "want to die",
-                    "hurt myself", "no point living", "they will kill me", "suicide", "kill myself",
-                    "kill me", "want to end it", "end it all"]
+# ---------- Crisis keywords (Multilingual) ----------
+CRISIS_KEYWORDS = [
+    # English
+    "end my life", "can't go on", "want to die", "hurt myself", "no point living",
+    "they will kill me", "suicide", "kill myself", "kill me", "want to end it",
+    "end it all", "better off dead", "don't want to live", "wish i was dead",
+    "nothing left to live for", "give up on life", "cut myself", "slit my wrist",
+    # Hindi
+    "मैं इस जिंदगी को खत्म करना चाहती हूं", "मैं इस जिंदगी को खत्म करना चाहता हूं",
+    "जिंदगी को खत्म", "जिंदगी खत्म", "खत्म करना चाहती हूं", "खत्म करना चाहता हूं",
+    "मरना चाहता हूं", "मरना चाहती हूं", "मर जाना", "जीना नहीं चाहता", "जीना नहीं चाहती",
+    "आत्महत्या", "खुदकुशी", "जान दे दूंगा", "जान दे दूंगी", "जान देना",
+    "और नहीं सह सकती", "और नहीं सह सकता", "बर्दाश्त नहीं",
+    # Hinglish
+    "mar jana chahta", "mar jana chahti", "zindagi khatam", "suicide karunga",
+    "suicide karungi", "nahi jeena", "nahi sah sakti", "khatam karni hai",
+    # Telugu
+    "చనిపోవాలనుంది", "చంపేస్తాడు", "బ్రతకడం ఇష్టం లేదు", "ఆత్మహత్య", "తట్టుకోలేకపోతున్నా",
+    # Tamil
+    "சாகணும்", "கொல்லுவான்", "உயிரை மாய்ச்சுக்கணும்", "தாங்க முடியல", "தற்கொலை"
+]
 
 # ---------- Smart Language Detection Helper ----------
 COMMON_ENGLISH_WORDS = {
