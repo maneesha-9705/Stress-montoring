@@ -25,8 +25,11 @@ export default function AdminRoutes() {
         <Route path="counselors/:id" element={<AdminCounselorDetails />} />
         
         <Route path="welfare" element={<AdminWelfare />} />
+        <Route path="welfare-oversight" element={<AdminWelfare />} />
         <Route path="alerts" element={<AdminAlerts />} />
+        <Route path="alert-center" element={<AdminAlerts />} />
         <Route path="reports" element={<AdminReports />} />
+        <Route path="geographic-reports" element={<AdminReports />} />
         <Route path="users" element={<AdminUsers />} />
 
         {/* Fallback route for unmatched /admin/* paths */}

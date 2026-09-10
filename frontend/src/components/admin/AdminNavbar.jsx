@@ -5,10 +5,9 @@ export default function AdminNavbar() {
   return (
     <header className="admin-navbar">
       <div className="navbar-left">
-        <img src="/images/emblem.png" alt="Government of India Emblem" className="navbar-logo" />
+        <img src="/images/emblem.png" alt="National Crime Records Bureau Emblem" className="navbar-logo" />
         <div className="brand-text">
-          <span className="brand-title">Government of India |</span>
-          <span className="brand-subtitle">National Crime Records Bureau</span>
+          <span className="brand-title">National Crime Records Bureau</span>
         </div>
       </div>
       
@@ -23,7 +22,6 @@ export default function AdminNavbar() {
           </svg>
         </div>
         <div className="user-details">
-          <span className="logged-in-text">Logged in as:</span>
           <span className="user-name">System Admin</span>
         </div>
       </div>

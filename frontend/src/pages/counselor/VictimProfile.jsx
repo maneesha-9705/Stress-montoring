@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../../utils/api';
 import DistressTrendChart from '../../components/charts/DistressTrendChart';
@@ -7,17 +7,17 @@ import DistressTrendChart from '../../components/charts/DistressTrendChart';
 const REFRESH_INTERVAL_MS = 60000; // 60 seconds
 
 const BAND_STYLES = {
-  Low:      { bg: '#dcfce7', text: '#15803d', border: '#86efac', bar: '#22c55e', label: 'LOW' },
-  Moderate: { bg: '#fef3c7', text: '#b45309', border: '#fde047', bar: '#eab308', label: 'MODERATE' },
-  High:     { bg: '#ffedd5', text: '#c2410c', border: '#fdba74', bar: '#f97316', label: 'HIGH' },
-  Severe:   { bg: '#fee2e2', text: '#b91c1c', border: '#fca5a5', bar: '#ef4444', label: 'SEVERE' },
+  Low:      { bg: '#f6fbf8', text: '#15803d', border: '#bbf7d0', bar: '#22c55e', label: 'LOW' },
+  Moderate: { bg: '#fff8e6', text: '#c2410c', border: '#fde047', bar: '#eab308', label: 'MODERATE' },
+  High:     { bg: '#fff1f2', text: '#be123c', border: '#fecdd3', bar: '#f43f5e', label: 'HIGH' },
+  Severe:   { bg: '#fdecec', text: '#b91c1c', border: '#fca5a5', bar: '#ef4444', label: 'SEVERE' },
 };
 
 const SEVERITY_STYLES = {
-  LOW:      { bg: '#dcfce7', text: '#15803d' },
-  MEDIUM:   { bg: '#fef3c7', text: '#b45309' },
-  HIGH:     { bg: '#ffedd5', text: '#c2410c' },
-  CRITICAL: { bg: '#fee2e2', text: '#b91c1c' },
+  LOW:      { bg: '#f6fbf8', text: '#15803d' },
+  MEDIUM:   { bg: '#fff8e6', text: '#c2410c' },
+  HIGH:     { bg: '#fff1f2', text: '#be123c' },
+  CRITICAL: { bg: '#fdecec', text: '#b91c1c' },
 };
 
 const EMOTION_ICONS = {
@@ -46,7 +46,7 @@ const display = (v) => (v != null && v !== '') ? v : 'N/A';
 function CrisisBanner() {
   return (
     <div style={{
-      background: '#fee2e2', border: '2px solid #ef4444', borderRadius: 8,
+      background: '#fdecec', border: '1px solid #ef4444', borderRadius: 8,
       padding: '0.85rem 1.25rem', marginBottom: '1.25rem',
       display: 'flex', alignItems: 'center', gap: '0.75rem',
     }}>
@@ -66,7 +66,7 @@ function CrisisBanner() {
 function RiskLevelCard({ status }) {
   if (!status || status.distressBand == null) {
     return (
-      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem' }}>
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
         <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Overall Risk Level
         </h3>
@@ -110,7 +110,7 @@ function RiskLevelCard({ status }) {
 function TodayEmotionCard({ today }) {
   const hasData = today && today.interactionCount > 0;
   return (
-    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem' }}>
+    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
       <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         Today&apos;s Emotion
       </h3>
@@ -214,7 +214,7 @@ function TimeOfDayWidget({ timeOfDay }) {
 
 function TodayActivityCard({ today }) {
   return (
-    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem' }}>
+    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
       <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         Today&apos;s Activity
       </h3>
@@ -401,32 +401,34 @@ export default function VictimProfile() {
     <div style={{ padding: '1rem' }}>
       {/* ── HEADER ─────────────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)',
-        borderRadius: 12, padding: '1.25rem 1.5rem', marginBottom: '1.25rem', color: '#f8fafc',
+        background: '#eef2fb',
+        border: '1px solid #d1d5db',
+        borderRadius: 12, padding: '1.25rem 1.5rem', marginBottom: '1.25rem', color: '#1a1a2e',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <Link to="/counselor/victims" style={{ color: '#93c5fd', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 500 }}>
+            <Link to="/counselor/victims" style={{ color: '#2563eb', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 600 }}>
               ← My Victims
             </Link>
-            <h1 style={{ margin: '0.35rem 0 0 0', fontSize: '1.3rem', fontWeight: 800, letterSpacing: '0.02em' }}>
+            <h1 style={{ margin: '0.35rem 0 0 0', fontSize: '1.3rem', fontWeight: 800, letterSpacing: '0.02em', color: '#1a1a2e' }}>
               🧠 VICTIM MENTAL HEALTH ANALYSIS
             </h1>
-            <div style={{ marginTop: '0.4rem', fontSize: '0.82rem', color: '#94a3b8', display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+            <div style={{ marginTop: '0.4rem', fontSize: '0.82rem', color: '#4b5563', display: 'flex', gap: '1.25rem', flexWrap: 'wrap', fontWeight: 500 }}>
               <span>👤 {victimName}</span>
               {caseId && <span>📋 Case: {caseId}</span>}
               <span>📅 {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</span>
             </div>
           </div>
-          <div style={{ textAlign: 'right', fontSize: '0.78rem', color: '#94a3b8' }}>
-            {refreshing && <div style={{ color: '#38bdf8', marginBottom: 2 }}>🔄 Refreshing...</div>}
-            {staleWarning && <div style={{ color: '#fbbf24', marginBottom: 2 }}>⚠ Unable to refresh</div>}
+          <div style={{ textAlign: 'right', fontSize: '0.78rem', color: '#4b5563' }}>
+            {refreshing && <div style={{ color: '#2563eb', marginBottom: 2 }}>🔄 Refreshing...</div>}
+            {staleWarning && <div style={{ color: '#d97706', marginBottom: 2 }}>⚠ Unable to refresh</div>}
             {lastUpdated && (
               <div>Last updated: {fmtTime(lastUpdated)}</div>
             )}
-            <div style={{ marginTop: 2, color: '#64748b' }}>Auto-refresh: 60s</div>
+            <div style={{ marginTop: 2, color: '#6b7280' }}>Auto-refresh: 60s</div>
             {bandStyle && (
-              <div style={{ marginTop: '0.5rem', background: bandStyle.bg, color: bandStyle.text, borderRadius: 20, padding: '0.25rem 0.75rem', fontSize: '0.78rem', fontWeight: 700, display: 'inline-block' }}>
+              <div style={{ marginTop: '0.5rem', background: bandStyle.bg, color: bandStyle.text, border: `1px solid ${bandStyle.border}`, borderRadius: 20, padding: '0.25rem 0.75rem', fontSize: '0.78rem', fontWeight: 700, display: 'inline-block' }}>
                 {bandStyle.label} RISK
               </div>
             )}
@@ -447,7 +449,7 @@ export default function VictimProfile() {
       {/* ── ROW 1: Trend Chart | Overall Risk | Today Emotion ─── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px 240px', gap: '1rem', marginBottom: '1rem' }}>
         {/* Distress Trend */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem' }}>
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
           <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             📈 Day-Wise Distress Trend (30 Days)
           </h3>
@@ -467,7 +469,7 @@ export default function VictimProfile() {
       </div>
 
       {/* ── ROW 2: Time of Day ─────────────────────────────────── */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem', marginBottom: '1rem' }}>
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', marginBottom: '1rem' }}>
         <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           🕐 Day-Time Emotion & Distress Levels (Today, IST)
         </h3>
@@ -484,14 +486,14 @@ export default function VictimProfile() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
         <TodayActivityCard today={today} />
 
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem' }}>
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
           <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             🔔 Open Alerts ({d?.alerts?.length ?? 0})
           </h3>
           <AlertsPanel alerts={d?.alerts} />
         </div>
 
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem' }}>
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
           <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             📊 Lifetime Emotion Breakdown
           </h3>
@@ -506,7 +508,7 @@ export default function VictimProfile() {
 
       {/* ── ROW 4: Victim Profile & Case Info ──────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem' }}>
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
           <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             👤 Victim Profile
           </h3>
@@ -546,7 +548,7 @@ export default function VictimProfile() {
           )}
         </div>
 
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem' }}>
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '1.25rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
           <h3 style={{ margin: '0 0 1rem 0', fontSize: '0.85rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             📋 Case Information
           </h3>
